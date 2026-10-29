@@ -37,15 +37,13 @@ watch, sends messages and temperature, and shows the watch battery.
 
 ### Step 2 – Install it on the phone
 
-1. **Remove any older copy first.** Go to *Settings → Apps*, find DeskMate or Smart Table Assistant and uninstall it.
-   An old copy signed with a different key causes **"App not installed"**.
-2. **Allow installs from this source.** Open the APK from the *Files* app (or Chrome). When Android asks, turn on
+1. **Allow installs from this source.** Open the APK from the *Files* app (or Chrome). When Android asks, turn on
    **Allow from this source** (Settings → Apps → Special app access → *Install unknown apps*).
-3. **Play Protect.** If you see **"App blocked to protect your device"**, Google Play Protect is blocking it because the app
+2. **Play Protect.** If you see **"App blocked to protect your device"**, Google Play Protect is blocking it because the app
    asks for sensitive access (notifications, call log, contacts). Turn the scan off **before** installing:
    *Play Store → profile picture → Play Protect → gear icon → turn off **Scan apps with Play Protect***.
    Install the app, then turn Play Protect back on.
-4. Tap **Install**, then **Open**.
+3. Tap **Install**, then **Open**.
 
 ### Step 3 – Give the app the access it needs
 
@@ -82,7 +80,7 @@ Calls and notifications are forwarded while the app process is alive. Stop your 
 | Problem | Fix |
 | --- | --- |
 | **App not installed** | Uninstall every older copy (also in *Clone apps / Second space / Work profile*). Copy the APK again by USB. Free about 200 MB. Check the exact error with `adb install -r app-release.apk`. |
-| **App blocked to protect your device** | Turn off *Scan apps with Play Protect* before installing (Step 2.3). |
+| **App blocked to protect your device** | Turn off *Scan apps with Play Protect* before installing (Step 2). |
 | **Notification access is greyed out** | *App info → ⋮ → Allow restricted settings* (Step 3). |
 | **Watch not found** | Power on the device, keep it within a few metres, and check Bluetooth is on. Only one phone can connect at a time, so close other apps that use the watch. |
 | **Calls show a number instead of a name** | Allow *Contacts* and *Call logs* (Step 3). |
@@ -96,7 +94,7 @@ You need Node.js 22 or newer, JDK 17 and the Android SDK (Android Studio), with 
 In the SDK Manager install Platform 37, Build-Tools 37, NDK 27.1.12297006 and **CMake 3.22.1** and accept the licences.
 
 ```bash
-git clone -b claude/jolly-heisenberg-9xi6uq https://github.com/alanjoseph77/STAssistant.git
+git clone https://github.com/alanjoseph77/STAssistant.git
 cd STAssistant/app
 npm install
 npx expo prebuild --platform android --clean
