@@ -1,4 +1,4 @@
-# Smart Table Assistant – Android app (Expo)
+# DeskMate (Smart Table Assistant) – Android app (Expo)
 
 Controls the [Smart Table Assistant](https://github.com/PinToCode/Smart-Table-Assistant-) firmware over BLE:
 sync time/date, send weather, push notifications, trigger call alerts, and read battery level/voltage.

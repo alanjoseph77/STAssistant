@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "Smart Table Assistant",
+    "name": "DeskMate",
     "slug": "smart-table-assistant",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
     },
@@ -17,7 +17,13 @@
         "android.permission.BLUETOOTH_SCAN",
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.ACCESS_FINE_LOCATION"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png",
+        "backgroundColor": "#13b765"
+      }
     },
     "plugins": [
       [
@@ -32,6 +38,7 @@
         }
       ],
       "expo-dev-client"
-    ]
+    ],
+    "icon": "./assets/icon.png"
   }
 }

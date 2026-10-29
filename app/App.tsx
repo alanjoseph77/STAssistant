@@ -1,154 +1,227 @@
+import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
+  StatusBar as RNStatusBar,
   StyleSheet,
   Switch,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import {
-  clearCall,
-  clearNotification,
-  sendCall,
-  sendDate,
-  sendNotification,
-  sendTime,
-  sendWeather,
-} from './src/ble';
+import { GlossButton, ListCard, ListRow, SectionLabel, WatchCard } from './src/components';
+import { clearNotification, formatDate, sendDate, sendNotification, sendTime, sendWeather } from './src/ble';
+import { colors } from './src/theme';
 import { useForwarding } from './src/useForwarding';
 import { useWatch } from './src/useWatch';
 
-function Button({ label, onPress, disabled, danger }: { label: string; onPress: () => void; disabled?: boolean; danger?: boolean }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [s.btn, danger && s.btnDanger, disabled && s.btnDisabled, pressed && { opacity: 0.7 }]}
-    >
-      <Text style={s.btnText}>{label}</Text>
-    </Pressable>
-  );
-}
+const QUICK_MESSAGES = ['Drink water', 'Break time', 'Call me'];
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={s.card}>
-      <Text style={s.cardTitle}>{title}</Text>
-      {children}
-    </View>
-  );
+function useClock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 15000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
 }
 
 export default function App() {
   const { status, error, battery, voltage, connect, disconnect, run } = useWatch();
-  const [weather, setWeather] = useState('24C');
-  const [message, setMessage] = useState('');
-  const [caller, setCaller] = useState('Mom');
   const connected = status === 'connected';
-  const fwd = useForwarding(connected, run);
   const busy = status === 'scanning' || status === 'connecting';
+  const fwd = useForwarding(connected, run);
+  const now = useClock();
+  const [temp, setTemp] = useState('24');
+  const [message, setMessage] = useState('');
+
+  const h = now.getHours() % 12 || 12;
+  const time = `${String(h).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
 
   return (
-    <SafeAreaView style={s.root}>
-      <StatusBar style="light" />
+    <View style={s.root}>
+      <StatusBar style="dark" />
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={s.title}>Smart Table Assistant</Text>
+        <Text style={s.title}>DeskMate</Text>
+        <View style={s.sub}>
+          <View style={[s.dot, !connected && s.dotOff]} />
+          <Text style={s.subText}>
+            {connected ? 'Connected to XIAO-Watch' : status === 'scanning' ? 'Searching for your watch…' : status === 'connecting' ? 'Connecting…' : 'Not connected'}
+          </Text>
+        </View>
 
-        <Card title="Connection">
-          <View style={s.row}>
-            <View style={[s.dot, { backgroundColor: connected ? '#3ddc84' : busy ? '#f5b942' : '#6b7280' }]} />
-            <Text style={s.text}>
-              {status === 'idle' ? 'Disconnected' : status === 'scanning' ? 'Scanning for XIAO-Watch…' : status === 'connecting' ? 'Connecting…' : 'Connected to XIAO-Watch'}
-            </Text>
-            {busy && <ActivityIndicator style={{ marginLeft: 8 }} />}
+        {!connected ? (
+          <View style={s.empty}>
+            <View style={s.emptyCircle}>
+              {busy ? <ActivityIndicator color={colors.green} size="large" /> : <Ionicons name="watch-outline" size={40} color={colors.greenDark} />}
+            </View>
+            <Text style={s.emptyTitle}>{busy ? 'Looking for your watch' : 'Watch not connected'}</Text>
+            <Text style={s.emptyText}>Turn on the device and keep it{'\n'}near your phone.</Text>
+            {error && <Text style={s.error}>{error}</Text>}
           </View>
-          {connected ? (
-            <Button label="Disconnect" onPress={disconnect} danger />
-          ) : (
-            <Button label="Scan & Connect" onPress={connect} disabled={busy} />
-          )}
-          {error && <Text style={s.error}>{error}</Text>}
-        </Card>
+        ) : (
+          <>
+            <WatchCard>
+              <View>
+                <Text style={s.clock}>
+                  {time}
+                  <Text style={s.ampm}> {ampm}</Text>
+                </Text>
+                <Text style={s.cardSub}>
+                  {formatDate(now)} · {temp}°C
+                </Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={s.battery}>{battery !== null ? `${battery}%` : '--'}</Text>
+                <Text style={s.cardSub}>{voltage !== null ? `${voltage.toFixed(2)} V` : '— V'}</Text>
+                <View style={s.barTrack}>
+                  <View style={[s.barFill, { width: `${battery ?? 0}%` }]} />
+                </View>
+              </View>
+            </WatchCard>
 
-        <Card title="Battery">
-          <Text style={s.big}>{battery !== null ? `${battery}%` : '—'}</Text>
-          <Text style={s.muted}>{voltage !== null ? `${voltage.toFixed(2)} V` : 'No data yet'}</Text>
-        </Card>
+            <GlossButton
+              label="Sync time & date"
+              style={{ marginTop: 12 }}
+              onPress={() =>
+                run(async (d) => {
+                  await sendTime(d);
+                  await sendDate(d);
+                })
+              }
+            />
 
-        <Card title="Time, date & weather">
-          <Button label="Sync time & date from phone" disabled={!connected} onPress={() => run(async (d) => { await sendTime(d); await sendDate(d); })} />
-          <TextInput style={s.input} value={weather} onChangeText={setWeather} placeholder='e.g. 24C or "24, Clear"' placeholderTextColor="#6b7280" maxLength={40} />
-          <Button label="Send weather" disabled={!connected || !weather.trim()} onPress={() => run((d) => sendWeather(d, weather.trim()))} />
-        </Card>
-
-        {fwd.supported && (
-          <Card title="Phone alerts (automatic)">
-            <View style={s.row}>
-              <Text style={[s.text, { flex: 1 }]}>Forward incoming calls</Text>
-              <Switch value={fwd.forwardCalls} onValueChange={fwd.setForwardCalls} />
+            <SectionLabel>Temperature</SectionLabel>
+            <View style={s.inline}>
+              <View style={[s.input, { flex: 1, flexDirection: 'row', alignItems: 'center' }]}>
+                <TextInput
+                  style={s.inputText}
+                  value={temp}
+                  onChangeText={setTemp}
+                  keyboardType="numeric"
+                  maxLength={3}
+                  placeholder="24"
+                  placeholderTextColor="#9a9ea5"
+                />
+                <Text style={s.unit}>°C</Text>
+              </View>
+              <GlossButton label="Send" style={{ width: 110 }} disabled={!temp.trim()} onPress={() => run((d) => sendWeather(d, `${temp.trim()}C`))} />
             </View>
-            {!fwd.callPerm && <Button label="Allow call access" onPress={fwd.requestCallPermissions} />}
-            <View style={s.row}>
-              <Text style={[s.text, { flex: 1 }]}>Forward notifications</Text>
-              <Switch value={fwd.forwardNotifs} onValueChange={fwd.setForwardNotifs} />
+
+            {fwd.supported && (
+              <>
+                <SectionLabel>Phone alerts</SectionLabel>
+                <ListCard>
+                  <ListRow
+                    icon="call-outline"
+                    title="Calls"
+                    subtitle={fwd.callPerm ? 'Caller name on the watch' : 'Needs phone permission'}
+                    right={
+                      fwd.callPerm ? (
+                        <Switch value={fwd.forwardCalls} onValueChange={fwd.setForwardCalls} trackColor={{ true: colors.green }} />
+                      ) : (
+                        <Pressable onPress={fwd.requestCallPermissions}>
+                          <Text style={s.link}>Allow</Text>
+                        </Pressable>
+                      )
+                    }
+                  />
+                  <ListRow
+                    last
+                    icon="notifications-outline"
+                    title="Notifications"
+                    subtitle={fwd.notifAccess ? 'WhatsApp, SMS and more' : 'Needs access'}
+                    right={
+                      fwd.notifAccess ? (
+                        <Switch value={fwd.forwardNotifs} onValueChange={fwd.setForwardNotifs} trackColor={{ true: colors.green }} />
+                      ) : (
+                        <Pressable onPress={fwd.openNotificationSettings}>
+                          <Text style={s.link}>Enable</Text>
+                        </Pressable>
+                      )
+                    }
+                  />
+                </ListCard>
+                {fwd.last && (
+                  <Text style={s.last}>
+                    Last sent: <Text style={{ color: colors.greenDark, fontWeight: '600' }}>{fwd.last}</Text>
+                  </Text>
+                )}
+              </>
+            )}
+
+            <SectionLabel>Send a message</SectionLabel>
+            <View style={s.chips}>
+              {QUICK_MESSAGES.map((m) => (
+                <Pressable key={m} style={s.chip} onPress={() => setMessage(m)}>
+                  <Text style={s.chipText}>{m}</Text>
+                </Pressable>
+              ))}
             </View>
-            {!fwd.notifAccess && <Button label="Enable notification access" onPress={fwd.openNotificationSettings} />}
-            <Text style={s.muted}>
-              {connected ? (fwd.last ? `Last sent: ${fwd.last}` : 'Waiting for a call or notification…') : 'Connect to the watch to start forwarding.'}
-            </Text>
-          </Card>
+            <View style={[s.input, { flexDirection: 'row', alignItems: 'center' }]}>
+              <TextInput
+                style={s.inputText}
+                value={message}
+                onChangeText={setMessage}
+                placeholder="Type a message"
+                placeholderTextColor="#9a9ea5"
+                maxLength={40}
+              />
+              <Text style={s.count}>{message.length}/40</Text>
+            </View>
+            <View style={s.inline}>
+              <GlossButton label="Send" style={{ flex: 1 }} disabled={!message.trim()} onPress={() => run((d) => sendNotification(d, message.trim()))} />
+              <GlossButton label="Dismiss" variant="outline" style={{ flex: 1 }} onPress={() => run(clearNotification)} />
+            </View>
+            {error && <Text style={s.error}>{error}</Text>}
+          </>
         )}
-
-        <Card title="Test: send a notification">
-          <TextInput style={s.input} value={message} onChangeText={setMessage} placeholder="Message (max 40 chars)" placeholderTextColor="#6b7280" maxLength={40} />
-          <View style={s.row}>
-            <View style={{ flex: 1 }}>
-              <Button label="Send" disabled={!connected || !message.trim()} onPress={() => run((d) => sendNotification(d, message.trim()))} />
-            </View>
-            <View style={{ width: 8 }} />
-            <View style={{ flex: 1 }}>
-              <Button label="Dismiss" disabled={!connected} onPress={() => run(clearNotification)} danger />
-            </View>
-          </View>
-        </Card>
-
-        <Card title="Test: call alert">
-          <TextInput style={s.input} value={caller} onChangeText={setCaller} placeholder="Caller (max 20 chars)" placeholderTextColor="#6b7280" maxLength={20} />
-          <View style={s.row}>
-            <View style={{ flex: 1 }}>
-              <Button label="Ring" disabled={!connected || !caller.trim()} onPress={() => run((d) => sendCall(d, caller.trim()))} />
-            </View>
-            <View style={{ width: 8 }} />
-            <View style={{ flex: 1 }}>
-              <Button label="Hang up" disabled={!connected} onPress={() => run(clearCall)} danger />
-            </View>
-          </View>
-        </Card>
       </ScrollView>
-    </SafeAreaView>
+
+      <View style={s.footer}>
+        {connected ? (
+          <GlossButton label="Disconnect" variant="outline" onPress={disconnect} />
+        ) : (
+          <GlossButton label={busy ? 'Searching…' : 'Scan & connect'} disabled={busy} onPress={connect} />
+        )}
+      </View>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0b0f14' },
-  scroll: { padding: 16, gap: 12 },
-  title: { color: '#fff', fontSize: 24, fontWeight: '700', marginVertical: 8 },
-  card: { backgroundColor: '#151b23', borderRadius: 14, padding: 14, gap: 10 },
-  cardTitle: { color: '#9ca3af', fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8 },
-  row: { flexDirection: 'row', alignItems: 'center' },
-  dot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
-  text: { color: '#e5e7eb', fontSize: 15 },
-  big: { color: '#fff', fontSize: 40, fontWeight: '700' },
-  muted: { color: '#9ca3af' },
-  error: { color: '#f87171' },
-  input: { backgroundColor: '#0b0f14', color: '#fff', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: '#262e38' },
-  btn: { backgroundColor: '#2563eb', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  btnDanger: { backgroundColor: '#7f1d1d' },
-  btnDisabled: { opacity: 0.4 },
-  btnText: { color: '#fff', fontWeight: '600' },
+  root: { flex: 1, backgroundColor: colors.bg, paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 24 : 48 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 24 },
+  title: { fontSize: 30, fontWeight: '800', letterSpacing: -0.6, color: colors.ink, marginTop: 14 },
+  sub: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, marginBottom: 22 },
+  subText: { fontSize: 13.5, color: colors.muted },
+  dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.green },
+  dotOff: { backgroundColor: '#bbb' },
+  empty: { alignItems: 'center', marginTop: 60 },
+  emptyCircle: { width: 96, height: 96, borderRadius: 48, borderWidth: 1.5, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  emptyTitle: { fontSize: 19, fontWeight: '700', color: colors.ink, marginBottom: 6 },
+  emptyText: { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 21 },
+  clock: { fontSize: 46, fontWeight: '800', letterSpacing: -1, color: '#fff', textShadowColor: 'rgba(3,64,31,0.4)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 },
+  ampm: { fontSize: 16, fontWeight: '700' },
+  cardSub: { fontSize: 13, color: '#e2ffee', marginTop: 6 },
+  battery: { fontSize: 26, fontWeight: '800', color: '#fff' },
+  barTrack: { width: 84, height: 4, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.3)', marginTop: 8, overflow: 'hidden' },
+  barFill: { height: 4, backgroundColor: '#fff' },
+  inline: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  input: { borderWidth: 1, borderColor: colors.line, borderRadius: 16, paddingHorizontal: 16, marginBottom: 12 },
+  inputText: { flex: 1, fontSize: 14.5, paddingVertical: 14, color: colors.ink },
+  unit: { color: colors.muted, fontSize: 14.5 },
+  count: { color: '#9a9ea5', fontSize: 13 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, backgroundColor: colors.greenTint, borderWidth: 1, borderColor: colors.greenTintBorder },
+  chipText: { fontSize: 13, color: colors.ink },
+  link: { fontSize: 13, fontWeight: '700', color: colors.greenDark, textDecorationLine: 'underline' },
+  last: { fontSize: 12.5, color: colors.muted, marginTop: 10 },
+  error: { color: colors.danger, marginTop: 12, textAlign: 'center' },
+  footer: { paddingHorizontal: 20, paddingBottom: 24, paddingTop: 8, backgroundColor: colors.bg },
 });
