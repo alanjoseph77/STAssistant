@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -19,6 +20,7 @@ import {
   sendTime,
   sendWeather,
 } from './src/ble';
+import { useForwarding } from './src/useForwarding';
 import { useWatch } from './src/useWatch';
 
 function Button({ label, onPress, disabled, danger }: { label: string; onPress: () => void; disabled?: boolean; danger?: boolean }) {
@@ -48,6 +50,7 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [caller, setCaller] = useState('Mom');
   const connected = status === 'connected';
+  const fwd = useForwarding(connected, run);
   const busy = status === 'scanning' || status === 'connecting';
 
   return (
@@ -83,7 +86,25 @@ export default function App() {
           <Button label="Send weather" disabled={!connected || !weather.trim()} onPress={() => run((d) => sendWeather(d, weather.trim()))} />
         </Card>
 
-        <Card title="Notification">
+        {fwd.supported && (
+          <Card title="Phone alerts (automatic)">
+            <View style={s.row}>
+              <Text style={[s.text, { flex: 1 }]}>Forward incoming calls</Text>
+              <Switch value={fwd.forwardCalls} onValueChange={fwd.setForwardCalls} />
+            </View>
+            {!fwd.callPerm && <Button label="Allow call access" onPress={fwd.requestCallPermissions} />}
+            <View style={s.row}>
+              <Text style={[s.text, { flex: 1 }]}>Forward notifications</Text>
+              <Switch value={fwd.forwardNotifs} onValueChange={fwd.setForwardNotifs} />
+            </View>
+            {!fwd.notifAccess && <Button label="Enable notification access" onPress={fwd.openNotificationSettings} />}
+            <Text style={s.muted}>
+              {connected ? (fwd.last ? `Last sent: ${fwd.last}` : 'Waiting for a call or notification…') : 'Connect to the watch to start forwarding.'}
+            </Text>
+          </Card>
+        )}
+
+        <Card title="Test: send a notification">
           <TextInput style={s.input} value={message} onChangeText={setMessage} placeholder="Message (max 40 chars)" placeholderTextColor="#6b7280" maxLength={40} />
           <View style={s.row}>
             <View style={{ flex: 1 }}>
@@ -96,7 +117,7 @@ export default function App() {
           </View>
         </Card>
 
-        <Card title="Incoming call alert">
+        <Card title="Test: call alert">
           <TextInput style={s.input} value={caller} onChangeText={setCaller} placeholder="Caller (max 20 chars)" placeholderTextColor="#6b7280" maxLength={20} />
           <View style={s.row}>
             <View style={{ flex: 1 }}>
