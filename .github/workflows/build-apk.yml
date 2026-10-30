@@ -45,15 +45,21 @@ jobs:
             echo "RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
             echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
             echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "SIGNED=true" >> "$GITHUB_ENV"
+          else
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret found. The build is signed with the DEBUG key and Google Play will reject it."
           fi
 
       - name: Build APK and app bundle
         working-directory: app/android
         run: ./gradlew assembleRelease bundleRelease --no-daemon
 
+      - name: Show who signed the bundle
+        run: keytool -printcert -jarfile android/app/build/outputs/bundle/release/app-release.aab | grep -E "Owner|SHA256" || true
+
       - uses: actions/upload-artifact@v4
         with:
-          name: deskmate-release
+          name: ${{ env.SIGNED == 'true' && 'deskmate-release' || 'deskmate-DEBUG-SIGNED-not-for-play' }}
           path: |
             app/android/app/build/outputs/apk/release/app-release.apk
             app/android/app/build/outputs/bundle/release/app-release.aab
