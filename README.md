@@ -18,6 +18,8 @@ watch, sends messages and temperature, and shows the watch battery.
 - Send temperature and short messages (up to 40 characters), and dismiss them
 - Forward real incoming calls (caller name from your contacts) and phone notifications
 - Live battery percentage and voltage
+- Stays connected in the background and reconnects by itself when the watch comes back in range
+- One-tap battery-optimization exemption so Android does not stop it
 
 ---
 
@@ -67,11 +69,13 @@ warning, then check the **⋮** menu again.
 
 ### Step 4 – Keep it running in the background
 
-Calls and notifications are forwarded while the app process is alive. Stop your phone from closing it:
+While the watch is connected DeskMate shows a small "Connected to your watch" notification. This foreground service keeps it
+alive with the screen off, and the app reconnects by itself if the watch goes out of range and returns.
 
-- *Settings → Battery → App battery management → DeskMate → **Unrestricted*** (the wording differs between brands).
-- Do not swipe the app away from recent apps.
+- In the app, open the **Background** card and tap **Fix** if it says Android may stop the app. Choose **Allow**.
+- If your phone still stops it, set *Settings → Battery → App battery management → DeskMate → **Unrestricted*** (the wording differs between brands).
 - On Xiaomi, Oppo, Realme, Vivo and OnePlus also enable **Auto-start**.
+- Avoid swiping the app away from recent apps; on some phones that ends the connection.
 
 ---
 
@@ -84,7 +88,7 @@ Calls and notifications are forwarded while the app process is alive. Stop your 
 | **Notification access is greyed out** | *App info → ⋮ → Allow restricted settings* (Step 3). |
 | **Watch not found** | Power on the device, keep it within a few metres, and check Bluetooth is on. Only one phone can connect at a time, so close other apps that use the watch. |
 | **Calls show a number instead of a name** | Allow *Contacts* and *Call logs* (Step 3). |
-| **Nothing arrives after a while** | Set battery to *Unrestricted* and do not swipe the app away (Step 4). |
+| **Nothing arrives after a while** | Tap **Fix** in the *Background* card, set battery to *Unrestricted* and do not swipe the app away (Step 4). |
 
 ---
 
@@ -109,6 +113,12 @@ The repository also has a GitHub Actions workflow (`.github/workflows/build-apk.
 
 ---
 
+## Publish on Google Play
+
+See [docs/PLAY_STORE.md](docs/PLAY_STORE.md) for signing, the app bundle, the store listing and the permission declarations, and
+[PRIVACY.md](PRIVACY.md) for the privacy policy.
+Pushing a tag such as `v1.0.0` builds a signed APK and AAB and attaches them to a GitHub release.
+
 ## Watch Bluetooth map
 
 Matches the `Smart_Table_Assistant.ino` firmware.
@@ -129,7 +139,8 @@ Matches the `Smart_Table_Assistant.ino` firmware.
 app/App.tsx                       screens
 app/src/ble.ts, useWatch.ts       Bluetooth connection and writes
 app/src/useForwarding.ts          call and notification forwarding
-app/modules/watch-bridge/         native Android module (notification listener, call state)
+app/modules/watch-bridge/         native Android module (notification listener, call state, background service)
+app/plugins/                      release signing config plugin
 app/assets/                       logo and icons
 docs/                             README images
 ```

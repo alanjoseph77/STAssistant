@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.provider.ContactsContract
 import android.provider.Settings
 import android.telephony.TelephonyManager
@@ -32,6 +33,26 @@ class WatchBridgeModule : Module() {
 
     Function("openNotificationAccessSettings") {
       val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      context.startActivity(intent)
+    }
+
+    Function("startKeepAlive") {
+      val intent = Intent(context, WatchKeepAliveService::class.java)
+      if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+    }
+
+    Function("stopKeepAlive") {
+      context.stopService(Intent(context, WatchKeepAliveService::class.java))
+    }
+
+    Function("isIgnoringBatteryOptimizations") {
+      val power = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+      power.isIgnoringBatteryOptimizations(context.packageName)
+    }
+
+    Function("requestIgnoreBatteryOptimizations") {
+      val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${context.packageName}"))
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       context.startActivity(intent)
     }

@@ -11,34 +11,32 @@
     "android": {
       "predictiveBackGestureEnabled": false,
       "package": "com.pintocode.smarttableassistant",
-      "permissions": [
-        "android.permission.BLUETOOTH",
-        "android.permission.BLUETOOTH_ADMIN",
-        "android.permission.BLUETOOTH_SCAN",
-        "android.permission.BLUETOOTH_CONNECT",
-        "android.permission.ACCESS_FINE_LOCATION"
-      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png",
         "backgroundColor": "#13b765"
-      }
+      },
+      "versionCode": 1,
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "plugins": [
       [
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": false,
-          "modes": [
-            "peripheral",
-            "central"
-          ],
+          "neverForLocation": true,
           "bluetoothAlwaysPermission": "Allow $(PRODUCT_NAME) to connect to your Smart Table Assistant"
         }
       ],
-      "expo-dev-client"
+      "./plugins/withReleaseSigning"
     ],
-    "icon": "./assets/icon.png"
+    "icon": "./assets/icon.png",
+    "description": "Show phone calls, notifications and messages on your Smart Table Assistant desk companion over Bluetooth."
   }
 }

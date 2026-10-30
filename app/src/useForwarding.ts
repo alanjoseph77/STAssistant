@@ -17,6 +17,7 @@ export function useForwarding(connected: boolean, run: Run) {
   const android = Platform.OS === 'android';
   const [notifAccess, setNotifAccess] = useState(false);
   const [callPerm, setCallPerm] = useState(false);
+  const [batteryOk, setBatteryOk] = useState(true);
   const [forwardCalls, setForwardCalls] = useState(true);
   const [forwardNotifs, setForwardNotifs] = useState(true);
   const [last, setLast] = useState<string | null>(null);
@@ -27,6 +28,7 @@ export function useForwarding(connected: boolean, run: Run) {
   const refresh = useCallback(async () => {
     if (!android) return;
     setNotifAccess(WatchBridge.isNotificationAccessEnabled());
+    setBatteryOk(WatchBridge.isIgnoringBatteryOptimizations());
     const checks = await Promise.all(CALL_PERMISSIONS.map((p) => PermissionsAndroid.check(p)));
     setCallPerm(checks[0]); // READ_PHONE_STATE is the one required to see calls at all
   }, [android]);
@@ -42,6 +44,8 @@ export function useForwarding(connected: boolean, run: Run) {
     await PermissionsAndroid.requestMultiple(CALL_PERMISSIONS);
     refresh();
   }, [refresh]);
+
+  const requestBatteryExemption = useCallback(() => WatchBridge.requestIgnoreBatteryOptimizations(), []);
 
   const openNotificationSettings = useCallback(() => WatchBridge.openNotificationAccessSettings(), []);
 
@@ -84,6 +88,8 @@ export function useForwarding(connected: boolean, run: Run) {
     supported: android,
     notifAccess,
     callPerm,
+    batteryOk,
+    requestBatteryExemption,
     forwardCalls,
     forwardNotifs,
     setForwardCalls,

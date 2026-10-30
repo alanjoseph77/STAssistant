@@ -16,6 +16,10 @@ type WatchBridgeEvents = {
 declare class WatchBridgeModule extends NativeModule<WatchBridgeEvents> {
   isNotificationAccessEnabled(): boolean;
   openNotificationAccessSettings(): void;
+  startKeepAlive(): void;
+  stopKeepAlive(): void;
+  isIgnoringBatteryOptimizations(): boolean;
+  requestIgnoreBatteryOptimizations(): void;
 }
 
 export default requireNativeModule<WatchBridgeModule>('WatchBridge');

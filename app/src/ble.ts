@@ -23,6 +23,10 @@ export const manager = new BleManager();
 
 export async function requestPermissions(): Promise<boolean> {
   if (Platform.OS !== 'android') return true;
+  if (Platform.Version >= 33) {
+    // Needed to show the "connected" notification of the background service; the app still works if denied.
+    await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+  }
   if (Platform.Version >= 31) {
     const res = await PermissionsAndroid.requestMultiple([
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,

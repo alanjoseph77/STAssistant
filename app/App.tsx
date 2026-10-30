@@ -33,7 +33,7 @@ function useClock() {
 export default function App() {
   const { status, error, battery, voltage, connect, disconnect, run } = useWatch();
   const connected = status === 'connected';
-  const busy = status === 'scanning' || status === 'connecting';
+  const busy = status === 'scanning' || status === 'connecting' || status === 'reconnecting';
   const fwd = useForwarding(connected, run);
   const now = useClock();
   const [temp, setTemp] = useState('24');
@@ -51,7 +51,7 @@ export default function App() {
         <View style={s.sub}>
           <View style={[s.dot, !connected && s.dotOff]} />
           <Text style={s.subText}>
-            {connected ? 'Connected to XIAO-Watch' : status === 'scanning' ? 'Searching for your watch…' : status === 'connecting' ? 'Connecting…' : 'Not connected'}
+            {connected ? 'Connected to XIAO-Watch' : status === 'scanning' ? 'Searching for your watch…' : status === 'connecting' ? 'Connecting…' : status === 'reconnecting' ? 'Reconnecting…' : 'Not connected'}
           </Text>
         </View>
 
@@ -60,8 +60,8 @@ export default function App() {
             <View style={s.emptyCircle}>
               {busy ? <ActivityIndicator color={colors.green} size="large" /> : <Ionicons name="watch-outline" size={40} color={colors.greenDark} />}
             </View>
-            <Text style={s.emptyTitle}>{busy ? 'Looking for your watch' : 'Watch not connected'}</Text>
-            <Text style={s.emptyText}>Turn on the device and keep it{'\n'}near your phone.</Text>
+            <Text style={s.emptyTitle}>{status === 'reconnecting' ? 'Reconnecting to your watch' : busy ? 'Looking for your watch' : 'Watch not connected'}</Text>
+            <Text style={s.emptyText}>{status === 'reconnecting' ? 'It will connect again by itself\nwhen the watch is back in range.' : 'Turn on the device and keep it\nnear your phone.'}</Text>
             {error && <Text style={s.error}>{error}</Text>}
           </View>
         ) : (
@@ -155,6 +155,29 @@ export default function App() {
               </>
             )}
 
+            {fwd.supported && (
+              <>
+                <SectionLabel>Background</SectionLabel>
+                <ListCard>
+                  <ListRow
+                    last
+                    icon="battery-charging-outline"
+                    title="Keep running"
+                    subtitle={fwd.batteryOk ? 'Battery usage is unrestricted' : 'Android may stop the app to save battery'}
+                    right={
+                      fwd.batteryOk ? (
+                        <Ionicons name="checkmark-circle" size={24} color={colors.green} />
+                      ) : (
+                        <Pressable onPress={fwd.requestBatteryExemption}>
+                          <Text style={s.link}>Fix</Text>
+                        </Pressable>
+                      )
+                    }
+                  />
+                </ListCard>
+              </>
+            )}
+
             <SectionLabel>Send a message</SectionLabel>
             <View style={s.chips}>
               {QUICK_MESSAGES.map((m) => (
@@ -184,8 +207,8 @@ export default function App() {
       </ScrollView>
 
       <View style={s.footer}>
-        {connected ? (
-          <GlossButton label="Disconnect" variant="outline" onPress={disconnect} />
+        {connected || status === 'reconnecting' ? (
+          <GlossButton label={connected ? 'Disconnect' : 'Stop reconnecting'} variant="outline" onPress={disconnect} />
         ) : (
           <GlossButton label={busy ? 'Searching…' : 'Scan & connect'} disabled={busy} onPress={connect} />
         )}

@@ -1,10 +1,14 @@
-name: Build Android APK
+name: Build Android APK and AAB
 
 on:
   workflow_dispatch:
   push:
     branches: ['**']
     paths: ['app/**', '.github/workflows/build-apk.yml']
+    tags: ['v*']
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -25,10 +29,39 @@ jobs:
           java-version: 17
       - run: npm ci
       - run: npx expo prebuild --platform android --no-install
-      - name: Build release APK
+
+      # Optional: add these repository secrets to sign with your own upload key.
+      # Without them the build is signed with the debug key (fine for sideloading, not for Google Play).
+      - name: Restore release key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            echo "RELEASE_STORE_FILE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+            echo "RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "RELEASE_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build APK and app bundle
         working-directory: app/android
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease bundleRelease --no-daemon
+
       - uses: actions/upload-artifact@v4
         with:
-          name: smart-table-assistant-apk
-          path: app/android/app/build/outputs/apk/release/app-release.apk
+          name: deskmate-release
+          path: |
+            app/android/app/build/outputs/apk/release/app-release.apk
+            app/android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            app/android/app/build/outputs/apk/release/app-release.apk
+            app/android/app/build/outputs/bundle/release/app-release.aab
