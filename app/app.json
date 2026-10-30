@@ -10,7 +10,7 @@
     },
     "android": {
       "predictiveBackGestureEnabled": false,
-      "package": "com.pintocode.smarttableassistant",
+      "package": "com.deskmate.tableassistant",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
